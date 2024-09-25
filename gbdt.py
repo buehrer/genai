@@ -4,12 +4,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, accuracy_score
 
 # Step 1: Load the data
-data = pd.read_csv('C:\Users\nbabar\test\git-stuff\genai\diabetes_prediction_dataset.csv')
+data = pd.read_csv('C:/Users/nbabar/test/git-stuff/genai/diabetes_prediction_dataset.csv')
 
 # Step 2: Preprocess the data
 # Assuming the target column is named 'target' and all other columns are features
-X = data.drop(columns=['target'])
-y = data['target']
+X = data.drop(columns=['diabetes'])
+y = data['diabetes']
 
 # Handle missing values if any
 X.fillna(X.mean(), inplace=True)
