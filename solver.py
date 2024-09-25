@@ -46,6 +46,62 @@ import time
 from dotenv import load_dotenv
 load_dotenv()
 
+
+#lightgbm tool
+def tool_train_lightgbm_model(filename,target_column):
+    from pathlib import Path
+    from sklearn.model_selection import train_test_split
+    import pandas as pd
+    from sklearn.metrics import mean_squared_error
+    import lightgbm as lgb
+
+    print("Loading data...")
+    # load or create your dataset
+    #regression_example_dir = Path(__file__).absolute().parents[1] / "regression"
+    df = pd.read_csv(filename, header=None, sep="\t")
+    train, test = train_test_split(df, test_size=0.2)
+    # split data into training and testing sets
+    # y is the column to predict
+    X_train = train.drop(target_column, axis=1)
+    X_test =  test.drop(target_column, axis=1)
+    y_train = train[target_column]
+    y_test =  test[target_column]
+    
+    # create dataset for lightgbm
+    lgb_train = lgb.Dataset(X_train, y_train)
+    lgb_eval = lgb.Dataset(X_test, y_test, reference=lgb_train)
+
+    # specify your configurations as a dict
+    params = {
+        "boosting_type": "gbdt",
+        "objective": "regression",
+        "metric": {"l2", "l1"},
+        "num_leaves": 31,
+        "learning_rate": 0.05,
+        "feature_fraction": 0.9,
+        "bagging_fraction": 0.8,
+        "bagging_freq": 5,
+        "verbose": 0,
+    }
+
+    print("Starting training...")
+    # train
+    gbm = lgb.train(
+        params, lgb_train, num_boost_round=20, valid_sets=lgb_eval, callbacks=[lgb.early_stopping(stopping_rounds=5)]
+    )
+
+    print("Saving model...")
+    # save model to file
+    gbm.save_model("model.txt")
+
+    print("Starting predicting...")
+    # predict
+    y_pred = gbm.predict(X_test, num_iteration=gbm.best_iteration)
+    # eval
+    rmse_test = mean_squared_error(y_test, y_pred) ** 0.5
+    print(f"The RMSE of prediction is: {rmse_test}")
+    return gbm
+
 #test the azure.ai.inference sdk
 if False:
     import os
@@ -177,7 +233,7 @@ if True:
                 fieldtypes = {f.name: f.type for f in data_class.__dataclass_fields__.values()}
                 return data_class(**{k: self.from_dict(fieldtypes[k], v) for k, v in data.items()})
             return data
-
+""" """  """ """
 #test azure open ai for gpt4o
 if False:
     client = AzureOpenAI(
@@ -790,7 +846,29 @@ function_list = [{
             },
             "required": ["query"]
         }
-    }
+    },
+    {
+        "name": "tool_train_lightgbm_model",
+        "description": "trains a machine learnt model to predict the target variable of a dataset",
+        "parameters": 
+        {
+            "type": "object",
+            "properties": 
+            {
+                "filename": 
+                    {
+                        "type": "string",
+                        "description": "location of the file to use for training"
+                    },
+                "target_column": 
+                    {
+                        "type": "integer",
+                        "description": "column of the target variable in the dataset"
+                    }
+            },
+            "required": ["filename","target_column"]
+        }
+    }            
 ]
 
 USING_GPT4o = True
@@ -988,6 +1066,15 @@ web_scraper_pickler = autogen.AssistantAgent(
     llm_config=llm_web_scraper,
     system_message="""You are a helpful AI assistant who uses a function map to get the latest information from the web. 
     You love to solve problems by making function calls that answer real time questions."""
+)
+
+# create an AssistantAgent instance named "assistant"
+train_lightgbm_agent = autogen.AssistantAgent(
+    name="train_lightgbm_agent",
+    function_map = {"tool_train_lightgbm_model": tool_train_lightgbm_model},
+    description="""  """,
+    llm_config=llm_web_scraper,
+    system_message="""  """
 )
 
 #create an assistant named chat manager
