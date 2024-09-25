@@ -1,0 +1,8 @@
+git commands
+
+#to add your changes
+git commit -a
+#then a comment, then esc, then :wq to save
+
+#then push it
+git push
