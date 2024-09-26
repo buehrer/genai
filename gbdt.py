@@ -1,45 +1,85 @@
 import lightgbm as lgb
 import pandas as pd
+from pathlib import Path
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, accuracy_score
 
+
+print("Loading data...")
+
 # Step 1: Load the data
-data = pd.read_csv('C:/Users/nbabar/test/git-stuff/genai/diabetes_prediction_dataset.csv')
+print("Loading data...")
+data = pd.read_csv(r'C:\Users\nbabar\test\git-stuff\genai\diabetes_prediction_dataset.csv', low_memory=False)
+print("Data loaded successfully.")
+print("Columns in the dataset:")
+print(data.columns)
+
+
 
 # Step 2: Preprocess the data
-# Assuming the target column is named 'target' and all other columns are features
+
+# Handle missing values if any
+data = data.fillna(data.mean())
+
+
+# Encode categorical variables
+le = LabelEncoder()
+categorical_columns = ['gender', 'smoking_history']
+for col in categorical_columns:
+    data[col] = le.fit_transform(data[col].astype(str))
+
+
+# Prepare features and target
 X = data.drop(columns=['diabetes'])
 y = data['diabetes']
 
-# Handle missing values if any
-X.fillna(X.mean(), inplace=True)
+# Convert all columns to float
+X = X.astype(float)
 
-# Encode categorical variables if any
-X = pd.get_dummies(X)
+print("Data preprocessing completed.")
+print("Feature columns:", X.columns)
+print("Target column: diabetes")
 
 # Step 3: Split the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+train, test = train_test_split(data, test_size=0.2)
+
+# y is the column to predict
+X_train = train.drop(columns=['diabetes'])
+X_test = test.drop(columns=['diabetes'])
+y_train = train['diabetes']
+y_test = test['diabetes']
+
 
 # Step 4: Train the model
 train_data = lgb.Dataset(X_train, label=y_train)
 test_data = lgb.Dataset(X_test, label=y_test, reference=train_data)
 
 params = {
-    'objective': 'regression',  # Change to 'binary' or 'multiclass' for classification
-    'metric': 'rmse',  # Change to 'binary_logloss' or 'multi_logloss' for classification
+    'objective': 'binary',  # for binary classification
+    'metric': 'binary_logloss',
     'boosting_type': 'gbdt',
     'num_leaves': 31,
     'learning_rate': 0.05,
     'feature_fraction': 0.9
 }
 
-model = lgb.train(params, train_data, valid_sets=[test_data], num_boost_round=100, early_stopping_rounds=10)
+print("starting training...")
+model = lgb.train(params, train_data, num_boost_round=100, valid_sets=[test_data], callbacks=[lgb.early_stopping(stopping_rounds=5)]) 
 
-# Step 5: Evaluate the model
+
+print("Saving model...")
+
+# save model to file
+model.save_model("model.txt")
+
+
+print("Starting predicting...")
+
+# predict 
 y_pred = model.predict(X_test, num_iteration=model.best_iteration)
-mse = mean_squared_error(y_test, y_pred)
-print(f'Mean Squared Error: {mse}')
 
-# For classification, you can use accuracy_score
-# accuracy = accuracy_score(y_test, (y_pred > 0.5).astype(int))
-# print(f'Accuracy: {accuracy}')
+# evaluate
+y_pred = model.predict(X_test, num_iteration=model.best_iteration)
+y_pred_binary = [1 if p >= 0.5 else 0 for p in y_pred]  # Convert probabilities to binary predictions
+accuracy = accuracy_score(y_test, y_pred_binary)
+print(f'Accuracy: {accuracy}')
