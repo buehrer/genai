@@ -1,8 +1,17 @@
 git commands
 
-#to add your changes
+#to check status
+git status
+
+#to add new files
+git add .
+
+#to add your changes to the local commit
 git commit -a
-#then a comment, then esc, then :wq to save
+
+#then type a comment
+#then hit esc to exit VIM edit mode
+# then type :wq to save and exit
 
 #then push it
 git push

@@ -46,9 +46,11 @@ import time
 from dotenv import load_dotenv
 load_dotenv()
 
+working_dir="C:/Users/buehrer/OneDrive - Microsoft/projects/genai/"
+MODELS={}
 
 #lightgbm tool
-def tool_train_lightgbm_model(filename,target_column):
+def tool_train_lightgbm_model(filename,target_column, separator_char):
     from pathlib import Path
     from sklearn.model_selection import train_test_split
     import pandas as pd
@@ -58,7 +60,8 @@ def tool_train_lightgbm_model(filename,target_column):
     print("Loading data...")
     # load or create your dataset
     #regression_example_dir = Path(__file__).absolute().parents[1] / "regression"
-    df = pd.read_csv(filename, header=None, sep="\t")
+    df = pd.read_csv(working_dir+filename, header=None, sep=separator_char)
+    df = df.convert_objects(convert_numeric=True)
     train, test = train_test_split(df, test_size=0.2)
     # split data into training and testing sets
     # y is the column to predict
@@ -92,7 +95,7 @@ def tool_train_lightgbm_model(filename,target_column):
 
     print("Saving model...")
     # save model to file
-    gbm.save_model("model.txt")
+    gbm.save_model(working_dir+"model.txt")
 
     print("Starting predicting...")
     # predict
@@ -100,7 +103,59 @@ def tool_train_lightgbm_model(filename,target_column):
     # eval
     rmse_test = mean_squared_error(y_test, y_pred) ** 0.5
     print(f"The RMSE of prediction is: {rmse_test}")
+    
+    #update the llm to have this model
+    update_llm_for_lightgbm_model(gbm)
     return gbm
+
+def score_using_model(model,X):
+    res = model.predict(X)
+    return res
+
+def update_llm_for_lightgbm_model(gbm):
+    MODELS['wine']=gbm
+    llm_scorer={
+        "timeout": 600,
+        "cache_seed": None,
+        "config_list": gpt4,
+        "temperature": 0.1,
+        "cache_seed": None,
+        "functions": [{
+            "name": "score_using_model",
+            "description": "scores the wine model for the given input",
+            "parameters": 
+            {
+                "type": "object",
+                "properties": 
+                {
+                    "model_name": 
+                        {
+                            "type": "string",
+                            "description": "the name of the model to use",
+                        },
+                    "input": 
+                        {
+                            "type": "string",
+                            "description": "a line of input data"
+                        },
+                    "separator_char": 
+                        {
+                            "type": "string",
+                            "description": "the character that separates the columns in the line or dataset",
+                        },
+                },
+                "required": ["model_name","input","separator"]
+            }
+        }]  
+                
+    }
+    groupchat.agents.append(llm_scorer)
+    
+def get_some_lines_of_data(filename:str, num_lines:int):
+    df = pd.read_csv(filename)
+    #get the first num_lines but skip the header
+    val = df.head(num_lines+1).to_string(header=False, index=False).strip()
+    return val
 
 #test the azure.ai.inference sdk
 if False:
@@ -813,10 +868,10 @@ gpt4 = [
 ]
 gpt4o = [
     {
-        'model': 'gpt-4o-mini',
-        #'model': 'gpt-4o-greg',
-        'api_key': os.environ['GPT4O_MINI_KEY2'],
-        'base_url': os.environ['GPT4O_MINI_BASE_URL2'],
+        #'model': 'gpt-4o-mini',
+        'model': 'gpt-4o-greg',
+        'api_key': os.environ['GPT4O_KEY2'],
+        'base_url': os.environ['GPT4O_BASE_URL2'],
         'api_type': 'azure',
         'api_version': '2024-02-15-preview', # '2024-02-01',
     },
@@ -830,50 +885,9 @@ gpt35turbo = [
         'api_version': '2023-03-15-preview',
     },
 ]
-function_list = [{
-        "name": "get_web_info",
-        "description": "use the web to find answers to questions",
-        "parameters": 
-        {
-            "type": "object",
-            "properties": 
-            {
-                " query": 
-                    {
-                        "type": "string",
-                        "description": "input query to search for on the web"
-                    }
-            },
-            "required": ["query"]
-        }
-    },
-    {
-        "name": "tool_train_lightgbm_model",
-        "description": "trains a machine learnt model to predict the target variable of a dataset",
-        "parameters": 
-        {
-            "type": "object",
-            "properties": 
-            {
-                "filename": 
-                    {
-                        "type": "string",
-                        "description": "location of the file to use for training"
-                    },
-                "target_column": 
-                    {
-                        "type": "integer",
-                        "description": "column of the target variable in the dataset"
-                    }
-            },
-            "required": ["filename","target_column"]
-        }
-    }            
-]
 
-USING_GPT4o = True
 
-if USING_GPT4o:
+if True:
     os.environ['OPENAI_API_KEY'] = os.environ['GPT4O_KEY2']
     os.environ['OPENAI_BASE_URL'] = os.environ['GPT4O_BASE_URL2']
     os.environ['OPENAI_API_VERSION'] = '2024-02-01'
@@ -891,25 +905,60 @@ if USING_GPT4o:
         "config_list": gpt4o,
         "temperature": 0.1,
         "cache_seed": None,
-        "functions": function_list,
+        "functions": [{
+            "name": "get_web_info",
+            "description": "use the web to find answers to questions",
+            "parameters": 
+            {
+                "type": "object",
+                "properties": 
+                {
+                    " query": 
+                        {
+                            "type": "string",
+                            "description": "input query to search for on the web"
+                        }
+                },
+                "required": ["query"]
+            }
+        }]
     }
-else:
-     #llm configs
-    llm_base={
+    llm_trainer={
         "timeout": 600,
         "cache_seed": None,
         "config_list": gpt4,
         "temperature": 0.1,
         "cache_seed": None,
+        "functions": [{
+            "name": "tool_train_lightgbm_model",
+            "description": "trains a machine learnt model to predict the target variable of a dataset",
+            "parameters": 
+            {
+                "type": "object",
+                "properties": 
+                {
+                    "filename": 
+                        {
+                            "type": "string",
+                            "description": "location of the file to use for training"
+                        },
+                    "target_column": 
+                        {
+                            "type": "integer",
+                            "description": "column of the target variable in the dataset"
+                        },
+                    "separator_char": 
+                        {
+                            "type": "string",
+                            "description": "the character that separates the columns in the dataset",
+                        },
+                },
+                "required": ["filename","target_column","separator"]
+            }
+        }]          
     }
-    llm_web_scraper={
-        "timeout": 600,
-        "cache_seed": None,
-        "config_list": gpt4,
-        "temperature": 0.1,
-        "cache_seed": None,
-        "functions": function_list,
-    }   
+    
+    
 if False:
     for i in range(0,10):
         #time the run 
@@ -1072,20 +1121,28 @@ web_scraper_pickler = autogen.AssistantAgent(
 train_lightgbm_agent = autogen.AssistantAgent(
     name="train_lightgbm_agent",
     function_map = {"tool_train_lightgbm_model": tool_train_lightgbm_model},
-    description="""  """,
-    llm_config=llm_web_scraper,
-    system_message="""  """
+    description=""" you are an assistant capable of training models to predict the target variable of a dataset.""",
+    llm_config=llm_trainer,
+    system_message=""" you are an assistant capable of training models to predict the target variable of a dataset. """
 )
 
 #create an assistant named chat manager
 groupchat = autogen.GroupChat(
         #agents=[user_proxy, code_runner, web_scraper_pickler, assistant],   
-        agents=[user_proxy, web_scraper_pickler, assistant],   
+        agents=[user_proxy, web_scraper_pickler, assistant, train_lightgbm_agent],   
             messages=[],  admin_name="admin", max_round=20, speaker_selection_method="auto"
     )
 manager = autogen.GroupChatManager(groupchat=groupchat, description="chat manager", llm_config=llm_base)
 
 
+task0 = """the following is a set of lines of data describing properties of a bottle of wine, where each line is a different bottle.
+The last column is the score of the bottle of wine. """ +get_some_lines_of_data(working_dir+'wine_data.txt', 5)+"""
+
+Please predict the score from 0 to 10 of a bottle of wine with these properties:
+
+5.5;0.29;0.3;1.1;0.022;20;110;0.98869;3.34;0.38;12.8;
+
+"""
 task1 = """how tall is the sears tower?"""
 task2 = """did the mariners win last night?"""
 task3 = """what time is it in seattle?"""
@@ -1094,24 +1151,19 @@ print(str(datetime.datetime.now()))
 start_trace()
 
 @trace_greg
-def run_it(task1):
-    print("starting chat, task is '"+task1+"'")
+def run_it(task):
+    print("starting chat, task is '"+task+"'")
     res = manager.initiate_chat(
         manager,
-        message=task1,
+        message=task,
     )
     print(str(res))
 print(str(datetime.datetime.now()))
 
-run_it("""how tall is the sears tower?""")
-run_it("""did the mariners win last night?""")
-run_it("""what religions do not allow cross religion marriages""")
-run_it("""what is 8*7""")
 
-task1="what time is it in seattle?"
 while True:
-    run_it(task1)
-    task1=input("enter a task: ")
+    run_it(task0)
+    task0=input("enter a task: ")
 
 
 
