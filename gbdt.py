@@ -15,7 +15,6 @@ print("Columns in the dataset:")
 print(data.columns)
 
 
-
 # Step 2: Preprocess the data
 print("Preprocessing data...")
 
