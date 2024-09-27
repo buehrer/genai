@@ -102,6 +102,15 @@ def train_model(dataset, target_column, delimiter):
     # prepare configuration for cross validation test harness
     seed = 7
     # prepare models
+    from sklearn import svm
+    from sklearn.svm import SVC
+    from sklearn.linear_model import SGDClassifier
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.tree import DecisionTreeClassifier
+    from sklearn.naive_bayes import GaussianNB
+    from sklearn.neighbors import KNeighborsClassifier
+    from sklearn.ensemble import AdaBoostClassifier
+    from sklearn.linear_model import LogisticRegression
     models = []
     models.append(('SupportVectorClassifier', SVC()))
     models.append(('StochasticGradientDecentC', SGDClassifier()))
@@ -118,14 +127,15 @@ def train_model(dataset, target_column, delimiter):
     from sklearn import model_selection
     scoring = 'accuracy'
     for name, model in models:
-        kfold = model_selection.KFold(n_splits=10, random_state=seed)
+        kfold = model_selection.KFold(n_splits=10, random_state=seed, shuffle=True)
         cv_results = model_selection.cross_val_score(model, X_train, y_train, cv=kfold, scoring=scoring)
         results.append(cv_results)
         names.append(name)
         msg = "%s: %f (%f)" % (name, cv_results.mean(), cv_results.std())
         print(msg)
     # boxplot algorithm comparison
-    import plt
+    # import the library
+    import matplotlib.pyplot as plt
     fig = plt.figure()
     fig.suptitle('Algorithm Comparison')
     ax = fig.add_subplot(111)
@@ -133,4 +143,4 @@ def train_model(dataset, target_column, delimiter):
     ax.set_xticklabels(names)
     plt.show()
 
-train_model("C:/Users/nbabar/test/git-stuff/genai/wine_data.txt", "quality", ";")
+train_model("C:/Users/buehrer/OneDrive - Microsoft/projects/genai/wine_data.txt", "quality", ";")
