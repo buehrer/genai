@@ -143,4 +143,6 @@ def train_model(dataset, target_column, delimiter):
     ax.set_xticklabels(names)
     plt.show()
 
-train_model("C:/Users/buehrer/OneDrive - Microsoft/projects/genai/wine_data.txt", "quality", ";")
+#train_model("C:/Users/buehrer/OneDrive - Microsoft/projects/genai/wine_data.txt", "quality", ";")
+#train_model("C:/Users/nbabar/test/git-stuff/genai/wine_data.txt", "quality", ";")
+train_model("C:/Users/nbabar/test/git-stuff/genai/diabetes_prediction_dataset.csv", "diabetes", ",")
