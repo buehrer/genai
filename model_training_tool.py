@@ -9,6 +9,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 import lightgbm as lgb
+import matplotlib.pyplot as plt
 from autogen import ConversableAgent
 from openai import OpenAIError
 from promptflow.tracing import trace as trace_nabila, start_trace
@@ -102,18 +103,31 @@ def train_model(dataset: str, target_column: str, delimiter: str) -> str:
     best_model = None
     best_accuracy = 0
     best_model_name = ""
+    model_accuracies = []
 
     for name, model in models:
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
         accuracy = accuracy_score(y_test, y_pred)
         print(f'{name} Accuracy: {accuracy}')
+        model_accuracies.append((name, accuracy))
         if accuracy > best_accuracy:
             best_accuracy = accuracy
             best_model = model
             best_model_name = name
 
     print(f'Best Model: {best_model_name} with Accuracy: {best_accuracy}')
+
+    # Plot the model accuracies
+    model_names, accuracies = zip(*model_accuracies)
+    plt.figure(figsize=(10, 5))
+    plt.bar(model_names, accuracies, color='skyblue')
+    plt.xlabel('Model')
+    plt.ylabel('Accuracy')
+    plt.title('Model Accuracies')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.show()
 
     return f"Model training completed. Best Model: {best_model_name} with Accuracy: {best_accuracy}"
 
