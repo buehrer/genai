@@ -37,8 +37,9 @@ def train_model(dataset: str, target_column: str, delimiter: str) -> str:
     from pathlib import Path
     from sklearn.model_selection import train_test_split
     import pandas as pd
-    from sklearn.metrics import mean_squared_error
+    from sklearn.metrics import mean_squared_error, accuracy_score
     import lightgbm as lgb
+    from sklearn.preprocessing import StandardScaler
 
     print("Loading data...")
 
@@ -47,6 +48,11 @@ def train_model(dataset: str, target_column: str, delimiter: str) -> str:
     print("Data loaded successfully.")
     print("Columns in the dataset:")
     print(data.columns)
+
+    # Check if the target column exists
+    if target_column not in data.columns:
+        raise ValueError(f"Target column '{target_column}' not found in the dataset. Available columns: {data.columns}")
+
 
     # Step 2: Preprocess the data
     print("Preprocessing data...")
@@ -162,9 +168,18 @@ user_proxy.register_for_execution(name="train_model")(train_model)
 
 
 try:
-    chat_result = user_proxy.initiate_chat(assistant, message='Train a model using the dataset at C:/Users/nbabar/test/git-stuff/genai/wine_data.txt to predict quality and delimiter ","')
+    chat_result = user_proxy.initiate_chat(assistant, message='Train a model using the dataset at C:/Users/nbabar/test/git-stuff/genai/wine_data.txt to predict quality and delimiter ";"')
     print(chat_result)
 except OpenAIError as e:
     print(f"An error occurred: {e}")    
+
+
+
+try:
+    chat_result = user_proxy.initiate_chat(assistant, message='Train a model using the dataset at C:/Users/nbabar/test/git-stuff/genai/wine_data.txt to predict quality and delimiter ";"')
+    print(chat_result)
 except OpenAIError as e:
-    print(f"An error occurred: {e}")
+    print(f"An error occurred: {e}")    
+
+
+#train_model("C:/Users/nbabar/test/git-stuff/genai/diabetes_prediction_dataset.csv", "diabetes", ",")
