@@ -8,10 +8,11 @@ from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
-import lightgbm as lgb
-import matplotlib.pyplot as plt
-from autogen import ConversableAgent
-from openai import OpenAIError
+import lightgbm as lgb #importing lightgbm for training
+import matplotlib.pyplot as plt #importing matplotlib for plotting
+import joblib  # Import joblib for saving models
+from autogen import ConversableAgent # Import ConversableAgent from autogen
+from openai import OpenAIError # Import OpenAIError from openai
 from promptflow.tracing import trace as trace_nabila, start_trace
 import os
 from dotenv import load_dotenv
@@ -118,6 +119,10 @@ def train_model(dataset: str, target_column: str, delimiter: str) -> str:
 
     print(f'Best Model: {best_model_name} with Accuracy: {best_accuracy}')
 
+    # Save the best model
+    joblib.dump(best_model, f'best_model_{best_model_name}.joblib')
+    print(f'Best model saved as best_model_{best_model_name}.joblib')
+
     # Plot the model accuracies
     model_names, accuracies = zip(*model_accuracies)
     plt.figure(figsize=(10, 5))
@@ -169,6 +174,4 @@ try:
     chat_result = user_proxy.initiate_chat(assistant, message='Train a model using the dataset at C:/Users/nbabar/test/git-stuff/genai/wine_data.txt to predict quality and delimiter ","')
     print(chat_result)
 except OpenAIError as e:
-    print(f"An error occurred: {e}")
-except ValueError as e:
     print(f"An error occurred: {e}")
