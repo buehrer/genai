@@ -33,6 +33,7 @@ Operator = Literal["+", "-", "*", "/"]
 
 
 # Define the calculator function 
+
 @trace_nabila
 def calculator(a: int, b: int, operator: Annotated[Operator, "operator"]) -> int:
     if operator == "+":
@@ -87,7 +88,6 @@ user_proxy.register_for_execution(name="calculator")(calculator)
 
 try:
     chat_result = user_proxy.initiate_chat(assistant, message="What is (44232 + 13312 / (232 - 32)) * 5?")
-    chat_result = user_proxy.initiate_chat(assistant, message="What is 9*3+3")
 
 except OpenAIError as e:
     print(f"An error occurred: {e}")
