@@ -39,7 +39,7 @@ def train_model(dataset: str, target_column: str, delimiter: str) -> str:
     import pandas as pd
     from sklearn.metrics import mean_squared_error, accuracy_score
     import lightgbm as lgb
-    from sklearn.preprocessing import StandardScaler
+    from sklearn.preprocessing import StandardScaler, LabelEncoder
 
     print("Loading data...")
 
@@ -167,19 +167,18 @@ user_proxy.register_for_execution(name="train_model")(train_model)
 
 
 
+# try:
+#     chat_result = user_proxy.initiate_chat(assistant, message='Train a model using the dataset at C:/Users/nbabar/test/git-stuff/genai/wine_data.txt to predict quality and delimiter ";"')
+#     print(chat_result)
+# except OpenAIError as e:
+#     print(f"An error occurred: {e}")    
+
+
+
 try:
-    chat_result = user_proxy.initiate_chat(assistant, message='Train a model using the dataset at C:/Users/nbabar/test/git-stuff/genai/wine_data.txt to predict quality and delimiter ";"')
+    chat_result = user_proxy.initiate_chat(assistant, message='Train a model using the dataset at C:/Users/nbabar/test/git-stuff/genai/diabetes_prediction_dataset.csv to predict diabetes and delimiter ","')
     print(chat_result)
 except OpenAIError as e:
     print(f"An error occurred: {e}")    
 
 
-
-try:
-    chat_result = user_proxy.initiate_chat(assistant, message='Train a model using the dataset at C:/Users/nbabar/test/git-stuff/genai/wine_data.txt to predict quality and delimiter ";"')
-    print(chat_result)
-except OpenAIError as e:
-    print(f"An error occurred: {e}")    
-
-
-#train_model("C:/Users/nbabar/test/git-stuff/genai/diabetes_prediction_dataset.csv", "diabetes", ",")
